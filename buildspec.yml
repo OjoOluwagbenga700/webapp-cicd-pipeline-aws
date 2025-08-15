@@ -17,6 +17,7 @@ phases:
       - echo Creating CodeDeploy bundle
       - mkdir -p bundle/app
       - cp -r app/dist/* bundle/app/
+      - cp app/package.json bundle/
       - cp -r scripts bundle/
       - cp appspec.yml bundle/
       - cd bundle

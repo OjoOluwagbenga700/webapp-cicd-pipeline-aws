@@ -1,0 +1,39 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 18
+  pre_build:
+    commands:
+      - echo Build started on `date`
+      - cd app 
+      - npm install
+  build:
+    commands:
+      - echo Build phase started on `date`
+      - npm run build
+      - cd ..
+      - echo Creating CodeDeploy bundle
+      - mkdir -p bundle/app
+      - cp -r app/dist/* bundle/app/
+      - cp -r scripts bundle/
+      - cp appspec.yml bundle/
+      - cd bundle
+      - zip -r ../bundle.zip .
+      - cd ..
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - |
+        if [ -n "$S3_BUCKET" ]; then
+          S3_PREFIX=${S3_PREFIX:-codedeploy}
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          S3_KEY="${S3_PREFIX}/bundle-${TIMESTAMP}.zip"
+          echo "Uploading bundle to s3://${S3_BUCKET}/${S3_KEY}"
+          aws s3 cp bundle.zip "s3://${S3_BUCKET}/${S3_KEY}"
+        fi
+
+artifacts:
+  files:
+    - bundle.zip

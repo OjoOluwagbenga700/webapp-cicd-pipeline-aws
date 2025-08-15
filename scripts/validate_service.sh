@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
-echo "Validating service on http://localhost:80 ..."
+echo "Validating service on http://localhost:8080 ..."
 for i in {1..10}; do
-  if curl -fsS http://localhost:80 >/dev/null; then
+  if curl -fsS http://localhost:8080 >/dev/null; then
     echo "Validation successful."
     exit 0
   fi

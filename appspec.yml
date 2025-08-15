@@ -1,7 +1,7 @@
 version: 0.0
 os: linux
 files:
-  - source: /my-react-app/dist
+  - source: /app/dist
     destination: /var/www/html/
 hooks:
   BeforeInstall:

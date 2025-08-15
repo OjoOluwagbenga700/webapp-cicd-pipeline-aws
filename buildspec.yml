@@ -5,7 +5,7 @@ phases:
     runtime-versions:
       nodejs: 20
     commands:
-        - cd ./my-react-app
+        - cd ./app
         - npm install
        
   build:
@@ -14,7 +14,9 @@ phases:
      
 artifacts:
   files:
-    - 'my-react-app/dist/**/*'
+    - 'app/dist/**/*'
     - 'appspec.yml'
     - 'scripts/**/*'
   discard-paths: no
+  type: zip
+  name: 'app.zip'

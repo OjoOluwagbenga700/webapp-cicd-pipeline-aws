@@ -8,4 +8,4 @@ if ! command -v node >/dev/null 2>&1; then
   sudo yum install -y nodejs
 fi
 echo "Installing npm dependencies..."
-npm ci || npm install
+ npm install

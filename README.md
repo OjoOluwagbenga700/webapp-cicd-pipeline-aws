@@ -1,48 +1,150 @@
-# EC2 Deployment with CodePipeline → CodeBuild → CodeDeploy
+# AWS CI/CD Pipeline with CodePipeline, CodeBuild, and CodeDeploy
 
-This project deploys a Node.js web app to an Amazon EC2 instance. CodeBuild performs a real build, packages a proper **CodeDeploy bundle**, and (optionally) uploads it to S3. CodeDeploy then deploys to EC2 and runs the app.
+This repository serves as both a demonstration and the companion code for my detailed tutorial blog post on setting up a fully automated CI/CD pipeline using AWS services. You can follow along with the blog post for step-by-step instructions or use this repository as a reference implementation.
 
-## How it works
-- **CodeBuild**: installs deps, runs `npm run build`, packages a `bundle.zip` with `appspec.yml`, `scripts/`, and `app/` at the zip root (as CodeDeploy expects).
-- **Artifacts**: `bundle.zip` is emitted for CodePipeline. If you set `S3_BUCKET` environment variable in CodeBuild, the build also uploads the bundle directly to S3 with a timestamped key.
-- **CodeDeploy**: copies `app/` to `/home/ec2-user/my-webapp`, runs lifecycle hooks to install, start, and validate.
+[Link to Blog Post ](https://dev.to/dhayv/ec2-cicd-pipeline-using-aws-codepipeline-codebuild-codedeploy-1p21)
+## Architecture
+
+![cloud architecture](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/3zehpnu7t8spv7gs7iny.png)
+
+## Technologies Used
+
+- **GitHub:** Source code repository
+- **AWS CodePipeline:** Pipeline orchestration
+- **AWS CodeBuild:** Code building and testing
+- **AWS CodeDeploy:** Automated deployment
+- **Amazon EC2:** Application hosting
+- **Amazon S3:** Build artifact storage
+- **AWS IAM:** Service permissions management
 
 ## Prerequisites
-- EC2 instance (Amazon Linux 2) with **CodeDeploy agent** running and an IAM instance profile allowing S3 + CodeDeploy.
-- Security Group open on **port 3000** (or modify the app/port).
-- CodeBuild service role with S3 and CodeDeploy permissions (if using S3 upload path).
-- CodeDeploy Application + Deployment Group targeting your EC2.
 
-## CodeBuild Environment Variables (recommended)
-- `AWS_DEFAULT_REGION` / region setting in project
-- `S3_BUCKET` (optional): if set, build uploads `bundle.zip` to `s3://$S3_BUCKET/<prefix>/...`
-- `S3_PREFIX` (optional): default `codedeploy`
+- AWS Account with administrative access
+- GitHub account
+- Basic understanding of AWS services
+- Familiarity with React/Vite applications
 
-## Local test1
-```bash
-cd app
-npm install
-npm start
-# Visit http://localhost:3000
+## Benefits
+
+- **Automated Deployments:** Eliminate manual SSH deployments and human error
+- **Consistent Process:** Ensure every deployment follows the same tested steps
+- **Quick Rollbacks:** Easily revert to previous versions if issues arise
+- **Enhanced Security:** Remove the need for direct SSH access to production servers
+- **Faster Development:** Reduce the time between code commits and production deployment
+
+## Repository Structure
+
+```
+├── my-react-app/        # Sample React application
+├── buildspec.yml        # CodeBuild instructions
+├── appspec.yml         # CodeDeploy configuration
+└── scripts/           # Deployment scripts
 ```
 
-## EC2 User Data (optional helper)
-```bash
-#!/bin/bash
-yum update -y
-curl -sL https://rpm.nodesource.com/setup_18.x | bash -
-yum install -y nodejs ruby wget
-cd /home/ec2-user
-REGION=$(curl -s http://169.254.169.254/latest/meta-data/placement/region)
-wget https://aws-codedeploy-${REGION}.s3.${REGION}.amazonaws.com/latest/install
-chmod +x ./install
-./install auto
-systemctl enable codedeploy-agent
-systemctl start codedeploy-agent
+## Setup Instructions
+
+### 1. IAM Role Configuration
+
+#### EC2 Role
+1. Create a new role with EC2 as trusted entity
+2. Attach `AmazonEC2RoleforAWSCodeDeploy` policy
+3. Name the role (e.g., `EC2CodeDeployRole`)
+
+#### CodeDeploy Role
+1. Create a new role with CodeDeploy as trusted entity
+2. Attach `AWSCodeDeployRole` policy
+3. Update trust relationship with provided policy
+
+### 2. EC2 Instance Setup
+
+1. Launch Ubuntu EC2 instance
+2. Configure security group (SSH: Port 22, HTTP: Port 80)
+3. Attach `EC2CodeDeployRole`
+4. Add CodeDeploy agent installation script to user data
+
+### 3. CodeDeploy Configuration
+
+1. Create CodeDeploy application
+2. Set up deployment group
+3. Configure deployment settings
+4. Link to EC2 instances
+
+### 4. CodePipeline Setup
+
+1. Create new pipeline
+2. Configure GitHub source connection
+3. Set up CodeBuild project
+4. Link CodeDeploy deployment
+
+## Configuration Files
+
+### buildspec.yml
+```yaml
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+        - cd ./my-react-app
+        - npm install
+       
+  build:
+    commands:
+        - npm run build
+     
+artifacts:
+  files:
+    - 'my-react-app/dist/**/*'
+    - 'appspec.yml'
+    - 'scripts/**/*'
+  discard-paths: no
 ```
 
-## Pipeline tips
-- In **CodePipeline**, set the Build output artifact to consume `bundle.zip` for the Deploy action.
-- In **CodeDeploy**, choose Deployment type **EC2/On-Premises** and ensure the appspec hooks paths match this repo.
-# webapp-cicd-pipeline
-# aws-webapp-cicd-tutorial
+### appspec.yml
+```yaml
+version: 0.0
+os: linux
+files:
+  - source: /my-react-app/dist
+    destination: /var/www/html/
+hooks:
+  BeforeInstall:
+    - location: scripts/before_install.sh
+      timeout: 300
+      runas: root
+  AfterInstall:
+    - location: scripts/after_install.sh
+      timeout: 300
+      runas: root
+  ApplicationStart:
+    - location: scripts/start_application.sh
+      timeout: 300
+      runas: root
+```
+
+## Troubleshooting
+
+- **CodeDeploy Agent Issues:** Check agent status with `sudo service codedeploy-agent status`
+- **Pipeline Failures:** Review CloudWatch logs for detailed error messages
+- **EC2 Connectivity:** Ensure security groups allow necessary traffic
+- **Build Failures:** Verify buildspec.yml paths and commands
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+
+## Acknowledgments
+
+- AWS Documentation
+- DevOps Community
+- React/Vite Documentation

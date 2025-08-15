@@ -22,7 +22,7 @@ function App() {
     <>
       <div className='container'>
       
-      <h1>AWS CI/CD Pipeline Demo</h1>
+      <h1>AWS CI/CD Pipeline Hands on Training</h1>
 
       <div className="card">
       <div>
@@ -36,7 +36,7 @@ function App() {
           </div>
 
           <p>
-            Simple demonstration of AWS CI/CD pipeline using Vite + React.
+            Simple demonstration of AWS CI/CD pipeline using AWS Developer Tools, S3 & Vite + React.
           </p>
           </div>
         
